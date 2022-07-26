@@ -3,6 +3,8 @@ import React, { Component } from "react";
 import Loading from "./Loading";
 import PropTypes from "prop-types";
 import InfiniteScroll from "react-infinite-scroll-component";
+import InfiniteLoader from "./InfiniteLoader";
+import pageEnd from "../assets/pageEnd.png";
 
 export default class News extends Component {
 	static propTypes = {
@@ -29,18 +31,24 @@ export default class News extends Component {
 			this.capitalizeFirstLetter(this.props.category) + " - TakaTak News";
 	}
 
+	newsApi = process.env.REACT_APP_NEWS_API;
+
 	fetchMoreData = async () => {
-		console.log("fetch more data ka loading start");
-		this.setState({ loading: true });
-		let apiKey = `https://newsapi.org/v2/top-headlines/?country=${this.props.country}&category=${this.props.category}&apiKey=7e87c89bfbbd4b8b8bb0721d45a6d454&pageSize=${this.props.pageSize}&page=${this.state.page}`;
+		this.setState({
+			loading: true,
+			page: this.state.page + 1,
+		});
+		let apiKey = `https://newsapi.org/v2/top-headlines/?country=${
+			this.props.country
+		}&category=${this.props.category}&apiKey=${this.newsApi}&pageSize=${
+			this.props.pageSize
+		}&page=${this.state.page + 1}`;
 		let data = await (await fetch(apiKey)).json();
 		this.setState({
-			page: this.state.page + 1,
 			articles: this.state.articles.concat(data.articles),
 			totalResults: data.totalResults,
 			loading: false,
 		});
-		console.log("fetch more data ka loading khatam");
 	};
 
 	capitalizeFirstLetter(string) {
@@ -48,44 +56,46 @@ export default class News extends Component {
 	}
 
 	async componentDidMount() {
-		console.log("componenet did mount ka loading start");
-		this.setState({ loading: true, page: this.state.page + 1 });
-		let apiKey = `https://newsapi.org/v2/top-headlines/?country=${this.props.country}&category=${this.props.category}&apiKey=7e87c89bfbbd4b8b8bb0721d45a6d454&pageSize=${this.props.pageSize}&page=${this.state.page}`;
+		this.setState({ loading: true });
+		let apiKey = `https://newsapi.org/v2/top-headlines/?country=${this.props.country}&category=${this.props.category}&apiKey=${this.newsApi}&pageSize=${this.props.pageSize}&page=${this.state.page}`;
 		let data = await (await fetch(apiKey)).json();
 		this.setState({
-			page: this.state.page + 1,
 			articles: data.articles,
 			totalResults: data.totalResults,
 			loading: false,
 		});
-		console.log("componenet did mount ka loading khatam");
 	}
 
 	render() {
-		return (
-			<>
-				<h2 id="heading" className="my-4">
-					Top headlines of the day
-				</h2>
-				<InfiniteScroll
-					dataLength={this.state.articles.length}
-					next={this.fetchMoreData}
-					hasMore={this.state.articles.length < this.state.totalResults}
-					loader={<Loading />}
-					endMessage={
-						<p style={{ textAlign: "center" }}>
-							<b>Yay! You have seen it all</b>
-						</p>
-					}
-				>
-					<>
-						{console.log(`${this.state.articles.length} + ${this.state.page}`)}
+		if (this.state.loading && this.state.articles.length === 0)
+			return <Loading />;
+		else
+			return (
+				<>
+					<h2 id="heading" className="my-4">
+						Top headlines of the day
+					</h2>
+					<InfiniteScroll
+						dataLength={this.state.articles.length}
+						next={this.fetchMoreData}
+						hasMore={this.state.articles.length < this.state.totalResults}
+						loader={<InfiniteLoader />}
+						endMessage={
+							<div className="text-center">
+								<img
+									className="my-3"
+									src={pageEnd}
+									alt="Yay, you have seen it all!"
+								/>
+							</div>
+						}
+					>
 						<div className="container">
 							<div className="row my-5">
-								{this.state.articles.map((element) => {
+								{this.state.articles.map((element, index) => {
 									return (
 										// @ts-ignore
-										<div className="col-md-4 mb-4" key={element.url}>
+										<div className="col-md-4 mb-4" key={index}>
 											<NewsItem
 												// @ts-ignore
 												title={element.title}
@@ -107,9 +117,8 @@ export default class News extends Component {
 								})}
 							</div>
 						</div>
-					</>
-				</InfiniteScroll>
-			</>
-		);
+					</InfiniteScroll>
+				</>
+			);
 	}
 }
